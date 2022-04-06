@@ -13,6 +13,14 @@ getTable (a:b:xs) | a + b + head xs /= 0 = BS.w2c a : getTable (b:xs)
                     | otherwise = []
 getTable [] = []
 
+numBForSkip :: (Eq a, Num a, Num t) => [a] -> t
+numBForSkip xs = numBForSkip' xs 0
+
+numBForSkip' :: (Eq a, Num a, Num t) => [a] -> t -> t
+numBForSkip' (a:b:xs) n | a /= 0 && b /= 0 && head xs /= 0 = numBForSkip' (b:xs) (n + 1)
+                         | otherwise = n + 2
+numBForSkip' [] n = n
+
 codeToBits :: (Integral a1, Num a2) => [a1] -> Int -> [a2]
 codeToBits [c] 0 = toBin c
 codeToBits [c] crc = take crc $ toBin c
@@ -89,10 +97,11 @@ takeNum (s:xs)  | s == ' ' || s == '\n' = []
 decompress :: Integral a => [GHC.Word.Word8] -> [a]
 decompress inp = do
     let tableZ = encodeSeries $ getTable inp -- сжатая таблица
-    let inp2 = drop (length tableZ) inp -- Убрать таблицу из данных
+    let table = makeTable tableZ -- сделать таблицу
+    let tree = createTree table Null -- построить дерево по таблице
+    let numSkip = numBForSkip inp -- посчитать сколько байт пропустить
+    let inp2 = drop numSkip inp -- Убрать таблицу из данных
     let crc = fromIntegral (inp2 !! 3) --контрольная сумма
     let code = drop 4 inp2 -- убрать crc и 0-и
     let bits = codeToBits code crc --разбить код на биты
-    let table = makeTable tableZ -- сделать таблицу
-    let tree = createTree table Null -- построить дерево по таблице
     decode (tail bits) [head bits] tree -- декодировать
