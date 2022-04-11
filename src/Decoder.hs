@@ -94,14 +94,19 @@ takeNum :: String -> String
 takeNum (s:xs)  | s == ' ' || s == '\n' = []
                 | otherwise = s : takeNum xs
 
+isNeed :: (Eq a, Num a) => [a] -> Bool
+isNeed (a:b:c:_) = not (a == 0 && c == 0)
+
 decompress :: Integral a => [GHC.Word.Word8] -> [a]
 decompress inp = do
-    let tableZ = encodeSeries $ getTable inp -- сжатая таблица
-    let table = makeTable tableZ -- сделать таблицу
-    let tree = createTree table Null -- построить дерево по таблице
-    let numSkip = numBForSkip inp -- посчитать сколько байт пропустить
-    let inp2 = drop numSkip inp -- Убрать таблицу из данных
-    let crc = fromIntegral (inp2 !! 3) --контрольная сумма
-    let code = drop 4 inp2 -- убрать crc и 0-и
-    let bits = codeToBits code crc --разбить код на биты
-    decode (tail bits) [head bits] tree -- декодировать
+    if isNeed inp then do
+        let tableZ = encodeSeries $ getTable inp -- сжатая таблица
+        let table = makeTable tableZ -- сделать таблицу
+        let tree = createTree table Null -- построить дерево по таблице
+        let numSkip = numBForSkip inp -- посчитать сколько байт пропустить
+        let inp2 = drop numSkip inp -- Убрать таблицу из данных
+        let crc = fromIntegral (inp2 !! 3) --контрольная сумма
+        let code = drop 4 inp2 -- убрать crc и 0-и
+        let bits = codeToBits code crc --разбить код на биты
+        decode (tail bits) [head bits] tree -- декодировать
+    else map fromIntegral (drop 3 inp) -- оставить как есть

@@ -81,4 +81,6 @@ compress inp = do
     let crc = fromIntegral $ length bitList `mod` 8 -- контрольная сумма по модулю 8 - нужна для отброса последних битов
     let bytesData = toBytes bitList -- разбиение битов на байты
     let newTable = map BS.c2w $ doTable binTable -- Создание таблицы для раскодировки
-    map fromIntegral (newTable ++ [0,0,0] ++ [crc] ++ bytesData) -- таблица для раскодировки, затем нули (конец таблицы) и сжатые данные
+    let res = map fromIntegral $ newTable ++ [0,0,0] ++ [crc] ++ bytesData -- таблица для раскодировки, затем нули (конец таблицы) и сжатые данные
+    if length res < length inp then res -- сжатие нужно
+    else [0,0,0] ++ map fromIntegral inp -- сжатия не было
